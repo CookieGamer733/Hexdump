@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <windows.h>
 
 #define VERSION "v1.0.0"
 
@@ -27,7 +28,7 @@ char *format_text(char *text, char *format);
 
 int main(int argc, char *argv[]) {
   handle_options(argc, argv);
-  
+
   if (help_flag) {
     printf("Hexdump %s\nUsage: hexdump [OPTION]... [FILE]\n\n", VERSION);
     exit(0);
@@ -41,6 +42,12 @@ int main(int argc, char *argv[]) {
   }
 
   struct file_data filedata = read_file(filename);
+
+  DWORD l_mode;
+  HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+
+  GetConsoleMode(hStdout, &l_mode);
+  SetConsoleMode(hStdout, l_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN);
 
   printf("Hexdump of %s\n", filename);
   printf(OFFSET_COLOR);
@@ -89,9 +96,8 @@ void handle_options(int argc, char *argv[]) {
 
   while (loop) {
     struct option long_options[] = {
-      {"help", no_argument, &help_flag, 'h'},
-      {"version", no_argument, &version_flag, 'v'}
-    };
+        {"help", no_argument, &help_flag, 'h'},
+        {"version", no_argument, &version_flag, 'v'}};
 
     c = getopt_long(argc, argv, "ghv", long_options, &index);
 
@@ -108,8 +114,7 @@ void handle_options(int argc, char *argv[]) {
         version_flag = 1;
         break;
       default:
-        if (help_flag == 0 && version_flag == 0)
-          exit(1);
+        if (help_flag == 0 && version_flag == 0) exit(1);
     }
   }
 
@@ -117,10 +122,7 @@ void handle_options(int argc, char *argv[]) {
 }
 
 struct file_data read_file(char *$filename) {
-  struct file_data filedata = {
-    size: 0,
-    content: ""
-  };
+  struct file_data filedata = {size : 0, content : ""};
 
   FILE *file = fopen(filename, "rb");
   if (!file) {
