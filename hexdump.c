@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <windows.h>
 
-#define VERSION "v1.0.0"
+#define VERSION "v1.1.0"
 
 #define OFFSET_COLOR "\033[38;2;0;144;255m"
 #define SIDEBAR_COLOR "\033[38;2;0;144;48m"
@@ -14,6 +14,7 @@
 
 static int help_flag;
 static int version_flag;
+static int ascii_flag;
 static char *filename;
 
 struct file_data {
@@ -47,7 +48,8 @@ int main(int argc, char *argv[]) {
   HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
 
   GetConsoleMode(hStdout, &l_mode);
-  SetConsoleMode(hStdout, l_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN);
+  SetConsoleMode(hStdout, l_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING |
+                              DISABLE_NEWLINE_AUTO_RETURN);
 
   printf("Hexdump of %s\n", filename);
   printf(OFFSET_COLOR);
@@ -66,24 +68,26 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    printf("   ");
+    if (ascii_flag) {
+      printf("   ");
 
-    printf(SIDEBAR_COLOR);
+      printf(SIDEBAR_COLOR);
 
-    for (int k = 0; k < 16; k++) {
-      if (i * 16 + k < filedata.size) {
-        char c = filedata.content[i * 16 + k];
-        if (c < 33 || c > 126) {
-          printf(".");
+      for (int k = 0; k < 16; k++) {
+        if (i * 16 + k < filedata.size) {
+          char c = filedata.content[i * 16 + k];
+          if (c < 33 || c > 126) {
+            printf(".");
+          } else {
+            printf("%c", c);
+          }
         } else {
-          printf("%c", c);
+          printf(" ");
         }
-      } else {
-        printf(" ");
       }
-    }
 
-    printf(RESET_FORMATING);
+      printf(RESET_FORMATING);
+    }
 
     printf("\n");
   }
@@ -97,7 +101,8 @@ void handle_options(int argc, char *argv[]) {
   while (loop) {
     struct option long_options[] = {
         {"help", no_argument, &help_flag, 'h'},
-        {"version", no_argument, &version_flag, 'v'}};
+        {"version", no_argument, &version_flag, 'v'},
+        {"ascii", no_argument, &ascii_flag, 'a'}};
 
     c = getopt_long(argc, argv, "ghv", long_options, &index);
 
@@ -112,6 +117,9 @@ void handle_options(int argc, char *argv[]) {
         break;
       case 'v':
         version_flag = 1;
+        break;
+      case 'a':
+        ascii_flag = 1;
         break;
       default:
         if (help_flag == 0 && version_flag == 0) exit(1);

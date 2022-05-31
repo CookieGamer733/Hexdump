@@ -23,6 +23,7 @@ After installation, you can run the executable by typing `hexdump` in the comman
 
   * `-h` `--help`: Prints the help message.
   * `-v` `--version`: Prints the version of the program.
+  * `-a` `--ascii`: Prints ASCII text in the sidebar.
 
 ## License
 
