@@ -1,17 +1,17 @@
-/* Ensure program is being compiled on windows */
-#ifndef _WIN32
-#error "This code is only compatible with Windows"
-#endif
-
+#include <ctype.h>
 #include <getopt.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <windows.h>
+#include <stdlib.h>
 
-#define VERSION "v1.2.0"
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+#define VERSION "v2.0.0"
 
 typedef struct filedata_t {
-  byte *content; /* content of the file */
+  unsigned char *content; /* content of the file */
   long size; /* size of the file */
 } filedata_t;
 
@@ -91,6 +91,7 @@ int main(int argc, char *argv[]) {
   };
 
   /* Enable VT100 escape sequences if color is enabled */
+  #ifdef _WIN32
   if (no_color_flag == false) {
     DWORD mode; /* Console mode */
     HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE); /* Get handle to stdout */
@@ -98,6 +99,7 @@ int main(int argc, char *argv[]) {
     GetConsoleMode(hStdout, &mode);
     SetConsoleMode(hStdout, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN);
   }
+  #endif
 
   /* Open the file */
   FILE *file = fopen(filename, "rb");
