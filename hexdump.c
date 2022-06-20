@@ -1,65 +1,173 @@
-#include <conio.h>
-#include <ctype.h>
+/* Ensure program is being compiled on windows */
+#ifndef _WIN32
+#error "This code is only compatible with Windows"
+#endif
+
 #include <getopt.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <windows.h>
 
-#define VERSION "v1.1.0"
+#define VERSION "v1.2.0"
 
-#define OFFSET_COLOR "\033[38;2;0;144;255m"
-#define SIDEBAR_COLOR "\033[38;2;0;144;48m"
-#define RESET_FORMATING "\033[0m"
-
-static int help_flag;
-static int version_flag;
-static int ascii_flag;
-static char *filename;
-
-struct file_data {
-  unsigned char *content;
-  long size;
-};
-
-void handle_options(int argc, char *argv[]);
-void help(void);
-struct file_data read_file(char *$filename);
-char *format_text(char *text, char *format);
+typedef struct filedata_t {
+  byte *content; /* content of the file */
+  long size; /* size of the file */
+} filedata_t;
 
 int main(int argc, char *argv[]) {
-  handle_options(argc, argv);
+  int index = 0; /* Index of the option in the long_options array */
+  bool option_loop = true; /* Flag to indicate if we should continue */
 
-  if (help_flag) {
-    printf("Hexdump %s\nUsage: hexdump [OPTION]... [FILE]\n\n", VERSION);
-    exit(0);
-  } else if (version_flag) {
-    printf("Hexdump %s\n", VERSION);
-    exit(0);
-  } else if (!filename) {
-    fprintf(stderr, "Missing File\n");
-    printf("Hexdump %s\nUsage: hexdump [OPTION]... [FILE]\n\n", VERSION);
-    exit(1);
+  /* Flags to indicate if the user has specified the corresponding option */
+  int help_flag = false; /* Flag to indicate if we should print help message */
+  int version_flag = false; /* Flag to indicate if we should print version message */
+  int ascii_flag = false; /* Flag to indicate if we should print ascii */
+  int no_color_flag = false; /* Flag to indicate if we should print without color */
+
+  char *filename = ""; /* Name of the file to be dumped */
+
+  /* Supported options */
+  const struct option options[] = {
+    { "help", no_argument, &help_flag, 1 },
+    { "version", no_argument, &version_flag, 1 },
+    { "show-ascii", no_argument, &ascii_flag, 1 },
+    { "no-color", no_argument, &no_color_flag, 1 }
+  };
+
+  while (option_loop) {
+    /* Get the next option */
+    int c = getopt_long(argc, argv, "hv", options, &index);
+
+    /* If we have reached the end of the options, break */
+    if (c == -1) {
+      option_loop = false;
+      break;
+    }
+
+    /* Set flags if short option is used */
+    switch (c) {
+      case 'h':
+        help_flag = true;
+        break;
+      case 'v':
+        version_flag = true;
+        break;
+      default:
+        break;
+    }
   }
 
-  struct file_data filedata = read_file(filename);
+  if (optind < argc) filename = argv[optind];
 
-  DWORD l_mode;
-  HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+  if (help_flag) {
+    printf("Usage: hexdump [option]... [FILE]\n");
+    printf("Dump the contents of FILE in hex and ASCII format.\n");
+    printf("\n");
+    printf("  -h, --help\t\tdisplay this help and exit\n");
+    printf("  -v, --version\t\toutput version information and exit\n");
+    printf("      --show-ascii\tdisplay the ASCII characters\n");
+    printf("      --no-color\t\tdisable color output\n");
+    printf("\n");
 
-  GetConsoleMode(hStdout, &l_mode);
-  SetConsoleMode(hStdout, l_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING |
-                              DISABLE_NEWLINE_AUTO_RETURN);
+    exit(0); /* Exit with success */
+  } else if (version_flag) {
+    printf("Hexdump %s\n", VERSION);
 
-  printf("Hexdump of %s\n", filename);
-  printf(OFFSET_COLOR);
+    exit(0); /* Exit with success */
+  } else if (filename[0] == '\0') {
+    printf("Error: no file specified\n");
+    printf("\n");
+    printf("Usage: hexdump [option]... [file]\n");
+    printf("Try 'hexdump --help' for more information.\n");
+
+    exit(1); /* Exit with error */
+  }
+
+  /* Structure to store the file data */
+  filedata_t filedata = {
+    size: 0,
+    content : ""
+  };
+
+  /* Enable VT100 escape sequences if color is enabled */
+  if (no_color_flag == false) {
+    DWORD mode; /* Console mode */
+    HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE); /* Get handle to stdout */
+
+    GetConsoleMode(hStdout, &mode);
+    SetConsoleMode(hStdout, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN);
+  }
+
+  /* Open the file */
+  FILE *file = fopen(filename, "rb");
+  if (!file) {
+    printf("Error: could not open file '%s'\n", filename);
+    exit(1); /* Exit with error */
+  }
+
+  /* Get the size of the file */
+  fseek(file, 0, SEEK_END);
+  filedata.size = ftell(file);
+  fseek(file, 0, SEEK_SET);
+
+  /* Check if the file is too big */
+  if (filedata.size >= 0xFFFFFFFF) {
+    printf("Error: file is too big\n");
+    exit(1); /* Exit with error */
+  } else if (filedata.size == 0) {
+    printf("Error: file is empty\n");
+    exit(1); /* Exit with error */
+  } else if (filedata.size >= 0x3000) {
+    printf("Warning: file is very large. This may take a while.\n");
+    printf("Do you want to continue? (y/n) ");
+    if (tolower(getchar()) != 'y') {
+      printf("Aborted\n");
+      exit(1); /* Exit with error */
+    }
+  }
+
+  /* Allocate memory for the file content */
+  filedata.content = malloc(filedata.size);
+  if (!filedata.content) {
+    printf("Error: could not allocate memory\n");
+    exit(1); /* Exit with error */
+  }
+
+  size_t read_size = fread(filedata.content, 1, filedata.size, file);
+  if (read_size != filedata.size) {
+    printf("Error: could not read file\n");
+    free(filedata.content);
+    exit(1); /* Exit with error */
+  }
+
+  /* Close the file */
+  fclose(file);
+
+  /* Set last byte to 0 */
+  filedata.content[filedata.size] = '\0';
+
+  /*
+   * Define the colors used in the output.
+   * However, if color is disabled, we don't use any colors
+   * so we define them as empty strings.
+   */
+  const char *ansi_reset = no_color_flag ? "" : "\x1b[0m"; /* Reset ANSI escape sequences */
+  const char *offset_color = no_color_flag ? "" : "\x1b[38;5;240m"; /* Color for offset */
+  const char *ascii_color = no_color_flag ? "" : "\x1b[38;5;246m"; /* Color for ASCII */
+
+  /* Dump hex values */
+  printf("%s", offset_color);
   printf("  Offset: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n");
-  printf(RESET_FORMATING);
+  printf("%s", ansi_reset);
 
   for (int i = 0; i < (((filedata.size) / 16) + 1); i++) {
-    printf(OFFSET_COLOR);
+    /* Print offset */
+    printf("%s", offset_color);
     printf("%08X: ", i * 16);
-    printf(RESET_FORMATING);
+    printf("%s", ansi_reset);
+
+    /* Print hex values */
     for (int j = 0; j < 16; j++) {
       if (i * 16 + j < filedata.size) {
         printf("%02X ", filedata.content[i * 16 + j]);
@@ -68,14 +176,16 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    /* Print ASCII values, if requested */
     if (ascii_flag) {
       printf("   ");
 
-      printf(SIDEBAR_COLOR);
+      printf("%s", ascii_color);
 
       for (int k = 0; k < 16; k++) {
         if (i * 16 + k < filedata.size) {
           char c = filedata.content[i * 16 + k];
+          /* Check if the character is printable */
           if (c < 33 || c > 126) {
             printf(".");
           } else {
@@ -86,91 +196,14 @@ int main(int argc, char *argv[]) {
         }
       }
 
-      printf(RESET_FORMATING);
+      printf("%s", ansi_reset);
     }
-
+  
     printf("\n");
   }
-}
+  
+  /* Free the memory allocated for the file content */
+  free(filedata.content);
 
-void handle_options(int argc, char *argv[]) {
-  int c;
-  int loop = 1;
-  int index = 0;
-
-  while (loop) {
-    struct option long_options[] = {
-        {"help", no_argument, &help_flag, 'h'},
-        {"version", no_argument, &version_flag, 'v'},
-        {"ascii", no_argument, &ascii_flag, 'a'}};
-
-    c = getopt_long(argc, argv, "ghv", long_options, &index);
-
-    if (c == -1) {
-      loop = false;
-      break;
-    };
-
-    switch (c) {
-      case 'h':
-        help_flag = 1;
-        break;
-      case 'v':
-        version_flag = 1;
-        break;
-      case 'a':
-        ascii_flag = 1;
-        break;
-      default:
-        if (help_flag == 0 && version_flag == 0) exit(1);
-    }
-  }
-
-  if (optind < argc) filename = argv[optind];
-}
-
-struct file_data read_file(char *$filename) {
-  struct file_data filedata = {size : 0, content : ""};
-
-  FILE *file = fopen(filename, "rb");
-  if (!file) {
-    fprintf(stderr, "Could not open file: %s", filename);
-    exit(2);
-  }
-
-  fseek(file, 0, SEEK_END);
-  filedata.size = ftell(file);
-  fseek(file, 0, SEEK_SET);
-
-  if (filedata.size >= 0xFFFFFFFF) {
-    fprintf(stderr, "File is too large");
-    exit(3);
-  } else if (filedata.size >= 0x3000) {
-    printf("File is very large meaning the operation can take a long time\n");
-    printf("Are you sure you want to continue? (y/n) > ");
-    char c = getch();
-    if (tolower(c) != 'y') {
-      fprintf(stderr, "Aborted");
-      exit(4);
-    }
-  }
-
-  filedata.content = malloc(filedata.size + 1);
-  if (!filedata.content) {
-    fprintf(stderr, "Could not allocate memory");
-    exit(5);
-  }
-
-  size_t read = fread(filedata.content, 1, filedata.size, file);
-  if (read != filedata.size) {
-    fprintf(stderr, "Could not read file");
-    free(filedata.content);
-    exit(6);
-  }
-
-  fclose(file);
-
-  filedata.content[filedata.size] = '\0';
-
-  return filedata;
+  return 0;
 }
