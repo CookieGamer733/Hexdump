@@ -24,20 +24,25 @@ int main(int argc, char *argv[]) {
   int version_flag = false; /* Flag to indicate if we should print version message */
   int ascii_flag = false; /* Flag to indicate if we should print ascii */
   int no_color_flag = false; /* Flag to indicate if we should print without color */
+  int output_file_flag = false; /* Flag to indicate if we should save to file */
+  int output_color_flag = false; /* Flag to indicate if we should save to file with color */
 
   char *filename = ""; /* Name of the file to be dumped */
+  char *output_file = ""; /* Name of the file to be printed to */
 
   /* Supported options */
   const struct option options[] = {
     { "help", no_argument, &help_flag, 1 },
     { "version", no_argument, &version_flag, 1 },
     { "show-ascii", no_argument, &ascii_flag, 1 },
-    { "no-color", no_argument, &no_color_flag, 1 }
+    { "no-color", no_argument, &no_color_flag, 1 },
+    { "output", required_argument, &output_file_flag, 1 },
+    { "output-color", no_argument, &output_color_flag, 1 }
   };
 
   while (option_loop) {
     /* Get the next option */
-    int c = getopt_long(argc, argv, "hv", options, &index);
+    int c = getopt_long(argc, argv, "hvo:", options, &index);
 
     /* If we have reached the end of the options, break */
     if (c == -1) {
@@ -53,21 +58,46 @@ int main(int argc, char *argv[]) {
       case 'v':
         version_flag = true;
         break;
+      case 'o':
+        output_file_flag = true;
+
+        /* If the output file is not specified, print error message */
+        if (optarg != NULL) {
+          output_file = optarg;
+        } else {
+          printf("Error: No output file specified.\n");
+          exit(1);
+        }
+        break;
       default:
         break;
     }
   }
 
+  /* Only check for color priority if output option is used */
+  if (output_file_flag) {
+    /* Check for color priority after long options are parsed */
+    if (!output_color_flag) no_color_flag = true;
+    else no_color_flag = false;
+  } else if (output_color_flag) {
+    printf("Error: Output color option can only be used with output option.\n");
+    exit(1);
+  }
+  
+
+  /* Get the filename */
   if (optind < argc) filename = argv[optind];
 
   if (help_flag) {
     printf("Usage: hexdump [option]... [FILE]\n");
-    printf("Dump the contents of FILE in hex and ASCII format.\n");
+    printf("Dump the contents of FILE in hex format.\n");
     printf("\n");
     printf("  -h, --help\t\tdisplay this help and exit\n");
+    printf("  -o, --output [FILE]\tprint to FILE instead of stdout\n");
+    printf("      --output-color\twhen writing to file, write color escape sequences as well\n");
     printf("  -v, --version\t\toutput version information and exit\n");
     printf("      --show-ascii\tdisplay the ASCII characters\n");
-    printf("      --no-color\t\tdisable color output\n");
+    printf("      --no-color\tdisable color output\n");
     printf("\n");
 
     exit(0); /* Exit with success */
@@ -158,50 +188,51 @@ int main(int argc, char *argv[]) {
   const char *offset_color = no_color_flag ? "" : "\x1b[38;2;0;144;255m"; /* Color for offset */
   const char *ascii_color = no_color_flag ? "" : "\x1b[38;2;0;144;48m"; /* Color for ASCII */
 
-  /* Dump hex values */
-  printf("%s", offset_color);
-  printf("  Offset: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n");
-  printf("%s", ansi_reset);
+  FILE *stream = output_file_flag ? fopen(output_file, "w") : stdout;
 
-  for (int i = 0; i < (((filedata.size) / 16) + 1); i++) {
+  /* Dump hex values */
+
+  fprintf(stream, "%s", offset_color);
+  fprintf(stream, "  Offset: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n");
+  fprintf(stream, "%s", ansi_reset);
+
+  for (int i = 0; i < (((filedata.size - 1) / 16) + 1); i++) {
     /* Print offset */
-    printf("%s", offset_color);
-    printf("%08X: ", i * 16);
-    printf("%s", ansi_reset);
+    fprintf(stream, "%s", offset_color);
+    fprintf(stream, "%08X: ", i * 16);
+    fprintf(stream, "%s", ansi_reset);
 
     /* Print hex values */
     for (int j = 0; j < 16; j++) {
       if (i * 16 + j < filedata.size) {
-        printf("%02X ", filedata.content[i * 16 + j]);
+        fprintf(stream, "%02X ", filedata.content[i * 16 + j]);
       } else {
-        printf("   ");
-      }
+        fprintf(stream, "   ");
+      } 
     }
 
     /* Print ASCII values, if requested */
     if (ascii_flag) {
-      printf("   ");
+      fprintf(stream, "   ");
 
-      printf("%s", ascii_color);
+      fprintf(stream, "%s", ascii_color);
 
       for (int k = 0; k < 16; k++) {
         if (i * 16 + k < filedata.size) {
           char c = filedata.content[i * 16 + k];
           /* Check if the character is printable */
           if (c < 33 || c > 126) {
-            printf(".");
+            fprintf(stream, ".");
           } else {
-            printf("%c", c);
+            fprintf(stream, "%c", c);
           }
-        } else {
-          printf(" ");
         }
       }
 
-      printf("%s", ansi_reset);
+      fprintf(stream, "%s", ansi_reset);
     }
   
-    printf("\n");
+    fprintf(stream, "\n");
   }
   
   /* Free the memory allocated for the file content */
