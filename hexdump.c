@@ -8,7 +8,7 @@
 #include <windows.h>
 #endif
 
-#define VERSION "v2.0.0"
+#define VERSION "v2.0.1"
 
 typedef struct filedata_t {
   unsigned char *content; /* content of the file */
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
   /* Structure to store the file data */
   filedata_t filedata = {
     size: 0,
-    content : ""
+    content: (unsigned char *)""
   };
 
   /* Enable VT100 escape sequences if color is enabled */
@@ -155,8 +155,8 @@ int main(int argc, char *argv[]) {
    * so we define them as empty strings.
    */
   const char *ansi_reset = no_color_flag ? "" : "\x1b[0m"; /* Reset ANSI escape sequences */
-  const char *offset_color = no_color_flag ? "" : "\x1b[38;5;240m"; /* Color for offset */
-  const char *ascii_color = no_color_flag ? "" : "\x1b[38;5;246m"; /* Color for ASCII */
+  const char *offset_color = no_color_flag ? "" : "\x1b[38;2;0;144;255m"; /* Color for offset */
+  const char *ascii_color = no_color_flag ? "" : "\x1b[38;2;0;144;48m"; /* Color for ASCII */
 
   /* Dump hex values */
   printf("%s", offset_color);
