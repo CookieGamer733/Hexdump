@@ -1,5 +1,0 @@
-make.exe --dry-run --always-make --keep-going --print-directory
-make: Entering directory 'c:/Users/keith/Desktop/Hexdump'
-gcc -Wall -O3 hexdump.c -o hexdump.exe
-make: Leaving directory 'c:/Users/keith/Desktop/Hexdump'
- 
