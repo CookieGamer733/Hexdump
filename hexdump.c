@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 #ifdef _WIN32
-#include <windows.h>
+  #include <windows.h>
 #endif
 
 #define VERSION "v3.0.0"
@@ -30,7 +30,7 @@ char *colors[] = {
   "\x1b[103m", /* bright yellow */
   "\x1b[104m", /* bright blue */
   "\x1b[105m", /* bright magenta */
-  "\x1b[106m\x1b[30m", /* bright cyan */
+  "\x1b[106m", /* bright cyan */
   "\x1b[107m"  /* bright white */
 };
 
@@ -143,13 +143,13 @@ int main(int argc, char *argv[]) {
 
   /* Enable VT100 escape sequences if color is enabled */
   #ifdef _WIN32
-  if (no_color_flag == false) {
-    DWORD mode; /* Console mode */
-    HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE); /* Get handle to stdout */
+    if (no_color_flag == false) {
+      DWORD mode; /* Console mode */
+      HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE); /* Get handle to stdout */
 
-    GetConsoleMode(hStdout, &mode);
-    SetConsoleMode(hStdout, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN);
-  }
+      GetConsoleMode(hStdout, &mode);
+      SetConsoleMode(hStdout, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN);
+    }
   #endif
 
   /* Open the file */
@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
       } 
     }
 
-        fprintf(stream, "%s", colors[0]);
+    fprintf(stream, "%s", colors[0]);
 
     /* Print ASCII values, if requested */
     if (ascii_flag) {
