@@ -1,6 +1,5 @@
 #include <ctype.h>
 #include <getopt.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -8,45 +7,30 @@
   #include <windows.h>
 #endif
 
+typedef int bool;
+
+#define false 0
+#define true 1
+
 #define VERSION "v3.0.0"
 
+/* File Data Structure */
 typedef struct filedata_t {
   unsigned char *content; /* content of the file */
   long size; /* size of the file */
 } filedata_t;
-
-char *colors[] = {
-  "\x1b[40m", /* black */
-  "\x1b[41m", /* red */
-  "\x1b[42m", /* green */
-  "\x1b[43m", /* yellow */
-  "\x1b[44m", /* blue */
-  "\x1b[45m", /* magenta */
-  "\x1b[46m", /* cyan */
-  "\x1b[47m\x1b[30m",  /* white */
-  "\x1b[100m", /* bright black */
-  "\x1b[101m", /* bright red */
-  "\x1b[102m", /* bright green */
-  "\x1b[103m", /* bright yellow */
-  "\x1b[104m", /* bright blue */
-  "\x1b[105m", /* bright magenta */
-  "\x1b[106m", /* bright cyan */
-  "\x1b[107m"  /* bright white */
-};
 
 int main(int argc, char *argv[]) {
   int index = 0; /* Index of the option in the long_options array */
   bool option_loop = true; /* Flag to indicate if we should continue */
 
   /* Flags to indicate if the user has specified the corresponding option */
-  int help_flag = false; /* Flag to indicate if we should print help message */
-  int version_flag = false; /* Flag to indicate if we should print version message */
-  int ascii_flag = false; /* Flag to indicate if we should print ascii */
-  int no_color_flag = false; /* Flag to indicate if we should print without color */
-  int output_file_flag = false; /* Flag to indicate if we should save to file */
-  int output_color_flag = false; /* Flag to indicate if we should save to file with color */
-
-  int rainbow_flag = false; /* Flag to indicate if we should print rainbow */
+  bool help_flag = false; /* Flag to indicate if we should print help message */
+  bool version_flag = false; /* Flag to indicate if we should print version message */
+  bool ascii_flag = false; /* Flag to indicate if we should print ascii */
+  bool no_color_flag = false; /* Flag to indicate if we should print without color */
+  bool output_file_flag = false; /* Flag to indicate if we should save to file */
+  bool output_color_flag = false; /* Flag to indicate if we should save to file with color */
 
   char *filename = ""; /* Name of the file to be dumped */
   char *output_file = ""; /* Name of the file to be printed to */
@@ -58,8 +42,7 @@ int main(int argc, char *argv[]) {
     { "show-ascii", no_argument, &ascii_flag, 1 },
     { "no-color", no_argument, &no_color_flag, 1 },
     { "output", required_argument, &output_file_flag, 1 },
-    { "output-color", no_argument, &output_color_flag, 1 },
-    { "rainbow", no_argument, &rainbow_flag, 1 }
+    { "output-color", no_argument, &output_color_flag, 1 }
   };
 
   while (option_loop) {
@@ -110,13 +93,13 @@ int main(int argc, char *argv[]) {
   if (optind < argc) filename = argv[optind];
 
   if (help_flag) {
-    printf("Usage: hexdump [option]... [FILE]\n");
+    printf("Usage: hexdump [option]... [file]\n");
     printf("Dump the contents of FILE in hex format.\n");
     printf("\n");
     printf("  -h, --help\t\tdisplay this help and exit\n");
+    printf("  -v, --version\t\toutput version information and exit\n");
     printf("  -o, --output [FILE]\tprint to FILE instead of stdout\n");
     printf("      --output-color\twhen writing to file, write color escape sequences as well\n");
-    printf("  -v, --version\t\toutput version information and exit\n");
     printf("      --show-ascii\tdisplay the ASCII characters\n");
     printf("      --no-color\tdisable color output\n");
     printf("\n");
@@ -141,8 +124,8 @@ int main(int argc, char *argv[]) {
     content: (unsigned char *)""
   };
 
-  /* Enable VT100 escape sequences if color is enabled */
   #ifdef _WIN32
+    /* Enable VT100 escape sequences if color is enabled */
     if (no_color_flag == false) {
       DWORD mode; /* Console mode */
       HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE); /* Get handle to stdout */
@@ -225,19 +208,12 @@ int main(int argc, char *argv[]) {
 
     /* Print hex values */
     for (int j = 0; j < 16; j++) {
-      char space = '\0';
-      if (rainbow_flag) {
-        fprintf(stream, "%s", colors[j]);
-        space = ' ';
-      }
       if (i * 16 + j < filedata.size) {
-        fprintf(stream, "%c%02X ",space , filedata.content[i * 16 + j]);
+        fprintf(stream, "%02X ", filedata.content[i * 16 + j]);
       } else {
-        fprintf(stream, "   %c", space);
+        fprintf(stream, "    ");
       } 
     }
-
-    fprintf(stream, "%s", colors[0]);
 
     /* Print ASCII values, if requested */
     if (ascii_flag) {
