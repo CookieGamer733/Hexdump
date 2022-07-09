@@ -15,6 +15,7 @@ After compiling, move the executable where ever you like. (If on windows, don't 
 ```bash
   hexdump [options]... [file]
 ```
+
 ### Options
 
 ```
@@ -24,8 +25,8 @@ After compiling, move the executable where ever you like. (If on windows, don't 
       --output-color    when writing to file, write color escape sequences as well
       --show-ascii      display the ASCII characters
       --no-color        disable color output
-``` 
-                       |
+```
+
 ## License
 
 This software is licensed under the [ISC license](LICENSE).
