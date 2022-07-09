@@ -12,7 +12,7 @@ typedef int bool;
 #define false 0
 #define true 1
 
-#define VERSION "v3.0.0"
+#define VERSION "v3.0.1"
 
 /* File Data Structure */
 typedef struct filedata_t {
@@ -25,24 +25,24 @@ int main(int argc, char *argv[]) {
   bool option_loop = true; /* Flag to indicate if we should continue */
 
   /* Flags to indicate if the user has specified the corresponding option */
-  bool help_flag = false; /* Flag to indicate if we should print help message */
-  bool version_flag = false; /* Flag to indicate if we should print version message */
-  bool ascii_flag = false; /* Flag to indicate if we should print ascii */
-  bool no_color_flag = false; /* Flag to indicate if we should print without color */
-  bool output_file_flag = false; /* Flag to indicate if we should save to file */
-  bool output_color_flag = false; /* Flag to indicate if we should save to file with color */
+  bool help_flag         = false;  /* Flag to indicate if we should print help message */
+  bool version_flag      = false;  /* Flag to indicate if we should print version message */
+  bool ascii_flag        = false;  /* Flag to indicate if we should print ascii */
+  bool no_color_flag     = false;  /* Flag to indicate if we should print without color */
+  bool output_file_flag  = false;  /* Flag to indicate if we should save to file */
+  bool output_color_flag = false;  /* Flag to indicate if we should save to file with color */
 
-  char *filename = ""; /* Name of the file to be dumped */
-  char *output_file = ""; /* Name of the file to be printed to */
+  char *filename    = "";  /* Name of the file to be dumped */
+  char *output_file = "";  /* Name of the file to be printed to */
 
   /* Supported options */
   const struct option options[] = {
-    { "help", no_argument, &help_flag, 1 },
-    { "version", no_argument, &version_flag, 1 },
-    { "show-ascii", no_argument, &ascii_flag, 1 },
-    { "no-color", no_argument, &no_color_flag, 1 },
-    { "output", required_argument, &output_file_flag, 1 },
-    { "output-color", no_argument, &output_color_flag, 1 }
+    { "help",         no_argument,       &help_flag,         1 },
+    { "version",      no_argument,       &version_flag,      1 },
+    { "show-ascii",   no_argument,       &ascii_flag,        1 },
+    { "no-color",     no_argument,       &no_color_flag,     1 },
+    { "output",       required_argument, &output_file_flag,  1 },
+    { "output-color", no_argument,       &output_color_flag, 1 }
   };
 
   while (option_loop) {
@@ -150,16 +150,16 @@ int main(int argc, char *argv[]) {
   /* Check if the file is too big */
   if (filedata.size >= 0xFFFFFFFF) {
     printf("Error: file is too big\n");
-    exit(1); /* Exit with error */
+    exit(1);
   } else if (filedata.size == 0) {
     printf("Error: file is empty\n");
-    exit(1); /* Exit with error */
+    exit(1);
   } else if (filedata.size >= 0x3000) {
     printf("Warning: file is very large. This may take a while.\n");
     printf("Do you want to continue? (y/n) ");
     if (tolower(getchar()) != 'y') {
       printf("Aborted\n");
-      exit(1); /* Exit with error */
+      exit(1);
     }
   }
 
@@ -167,14 +167,14 @@ int main(int argc, char *argv[]) {
   filedata.content = malloc(filedata.size);
   if (!filedata.content) {
     printf("Error: could not allocate memory\n");
-    exit(1); /* Exit with error */
+    exit(1);
   }
 
   size_t read_size = fread(filedata.content, 1, filedata.size, file);
   if (read_size != filedata.size) {
     printf("Error: could not read file\n");
     free(filedata.content);
-    exit(1); /* Exit with error */
+    exit(1);
   }
 
   /* Close the file */
@@ -186,7 +186,7 @@ int main(int argc, char *argv[]) {
   /*
    * Define the colors used in the output.
    * However, if color is disabled, we don't use any colors
-   * so we define them as empty strings.
+   *   so we define them as empty strings.
    */
   const char *ansi_reset = no_color_flag ? "" : "\x1b[0m"; /* Reset ANSI escape sequences */
   const char *offset_color = no_color_flag ? "" : "\x1b[38;2;0;144;255m"; /* Color for offset */
@@ -211,7 +211,7 @@ int main(int argc, char *argv[]) {
       if (i * 16 + j < filedata.size) {
         fprintf(stream, "%02X ", filedata.content[i * 16 + j]);
       } else {
-        fprintf(stream, "    ");
+        fprintf(stream, "   ");
       } 
     }
 
